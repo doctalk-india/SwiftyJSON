@@ -942,7 +942,7 @@ extension JSON {
             switch self.type {
             case .date:
                 return object as? Date ?? Date()
-            case .string:
+            case .string, .number:
                 return Date(timeIntervalSince1970: self.doubleValue)
             default:
                 return Date()
