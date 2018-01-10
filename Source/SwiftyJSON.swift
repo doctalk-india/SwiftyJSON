@@ -89,6 +89,7 @@ public enum Type: Int {
 	case bool
 	case array
 	case dictionary
+    case date
 	case null
 	case unknown
 }
@@ -120,6 +121,8 @@ public struct JSON {
 	 */
     public init(_ object: Any) {
         switch object {
+        case let dateObject as Date:
+            self.init(jsonObject: dateObject)
         case let object as Data:
             do {
                 try self.init(data: object)
@@ -230,6 +233,7 @@ public struct JSON {
     fileprivate var rawNumber: NSNumber = 0
     fileprivate var rawNull: NSNull = NSNull()
     fileprivate var rawBool: Bool = false
+    fileprivate var rawDate: Date = Date()
 
     /// JSON type, fileprivate setter
     public fileprivate(set) var type: Type = .null
@@ -251,6 +255,8 @@ public struct JSON {
                 return self.rawNumber
             case .bool:
                 return self.rawBool
+            case .date:
+                return self.rawDate
             default:
                 return self.rawNull
             }
@@ -279,6 +285,9 @@ public struct JSON {
             case let dictionary as [String: Any]:
                 type = .dictionary
                 self.rawDictionary = dictionary
+            case let date as Date:
+                type = .date
+                self.rawDate = date
             default:
                 type = .unknown
                 error = SwiftyJSONError.unsupportedType
@@ -305,6 +314,8 @@ private func unwrap(_ object: Any) -> Any {
             unwrappedDic[k] = unwrap(v)
         }
         return unwrappedDic
+    case let date as Date:
+        return date
     default:
         return object
     }
@@ -913,6 +924,33 @@ extension JSON {
     }
 }
 
+// MARK: - Date
+
+extension JSON {
+    public var date: Date? {
+        get {
+            switch self.type {
+            case .date:
+                return self.object as? Date
+            default: return nil
+            }
+        }
+    }
+    
+    public var dateValue: Date {
+        get {
+            switch self.type {
+            case .date:
+                return object as? Date ?? Date()
+            case .string:
+                return Date(timeIntervalSince1970: self.doubleValue)
+            default:
+                return Date()
+            }
+        }
+    }
+}
+
 // MARK: - Number
 
 extension JSON {
@@ -1297,6 +1335,8 @@ public func == (lhs: JSON, rhs: JSON) -> Bool {
         return lhs.rawArray as NSArray == rhs.rawArray as NSArray
     case (.dictionary, .dictionary):
         return lhs.rawDictionary as NSDictionary == rhs.rawDictionary as NSDictionary
+    case (.date, .date):
+        return lhs.dateValue == rhs.dateValue
     case (.null, .null):
         return true
     default:
@@ -1317,6 +1357,8 @@ public func <= (lhs: JSON, rhs: JSON) -> Bool {
         return lhs.rawArray as NSArray == rhs.rawArray as NSArray
     case (.dictionary, .dictionary):
         return lhs.rawDictionary as NSDictionary == rhs.rawDictionary as NSDictionary
+    case (.date, .date):
+        return lhs.dateValue <= rhs.dateValue
     case (.null, .null):
         return true
     default:
@@ -1337,6 +1379,8 @@ public func >= (lhs: JSON, rhs: JSON) -> Bool {
         return lhs.rawArray as NSArray == rhs.rawArray as NSArray
     case (.dictionary, .dictionary):
         return lhs.rawDictionary as NSDictionary == rhs.rawDictionary as NSDictionary
+    case (.date, .date):
+        return lhs.dateValue >= rhs.dateValue
     case (.null, .null):
         return true
     default:
@@ -1351,6 +1395,8 @@ public func > (lhs: JSON, rhs: JSON) -> Bool {
         return lhs.rawNumber > rhs.rawNumber
     case (.string, .string):
         return lhs.rawString > rhs.rawString
+    case (.date, .date):
+        return lhs.dateValue > rhs.dateValue
     default:
         return false
     }
@@ -1363,6 +1409,8 @@ public func < (lhs: JSON, rhs: JSON) -> Bool {
         return lhs.rawNumber < rhs.rawNumber
     case (.string, .string):
         return lhs.rawString < rhs.rawString
+    case (.date, .date):
+        return lhs.dateValue < rhs.dateValue
     default:
         return false
     }
